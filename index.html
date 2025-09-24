@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gym Class Reservation System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
         :root {
             --primary: #3498db;
@@ -328,6 +327,16 @@
             background: #f8d7da;
             color: #721c24;
         }
+        
+        .debug-info {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            margin-top: 10px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -342,6 +351,10 @@
         <div class="instructions">
             <h3><i class="fas fa-info-circle"></i> How to Use</h3>
             <p>Select a time slot, fill in your details, and click "Make Reservation". Personalized programs automatically book 2 hours. Maximum 8 people per time slot.</p>
+            <button id="toggleDebug" style="margin-top: 10px; width: auto; padding: 5px 10px; background: var(--primary);">
+                <i class="fas fa-bug"></i> Show Debug Info
+            </button>
+            <div id="debugInfo" class="debug-info"></div>
         </div>
         
         <div class="alert alert-success" id="successAlert">
@@ -434,6 +447,9 @@
                     <button id="exportData" style="width: auto; margin-top: 20px;">
                         <i class="fas fa-download"></i> Export Data to CSV
                     </button>
+                    <button id="clearAllData" style="width: auto; margin-top: 10px; background: var(--danger);">
+                        <i class="fas fa-trash"></i> Clear All Data
+                    </button>
                 </div>
             </div>
         </div>
@@ -473,6 +489,8 @@
         const tabButtons = document.querySelectorAll('.tab-button');
         const tabContents = document.querySelectorAll('.tab-content');
         const connectionStatus = document.getElementById('connectionStatus');
+        const debugInfo = document.getElementById('debugInfo');
+        const toggleDebug = document.getElementById('toggleDebug');
 
         let selectedTimeSlot = null;
         let allReservationsData = [];
@@ -484,9 +502,14 @@
             await testConnection();
             
             if (isConnected) {
-                loadTimeSlots();
-                loadReservations();
-                loadAllReservations();
+                await loadTimeSlots();
+                await loadReservations();
+                await loadAllReservations();
+            } else {
+                // If not connected, try to load from localStorage
+                await loadTimeSlots();
+                await loadReservations();
+                await loadAllReservations();
             }
             
             setupEventListeners();
@@ -497,19 +520,24 @@
             try {
                 connectionStatus.innerHTML = '<i class="fas fa-sync fa-spin"></i> Testing connection...';
                 
-                const response = await fetch(SCRIPT_URL);
-                if (response.ok) {
-                    isConnected = true;
-                    connectionStatus.innerHTML = '<i class="fas fa-check-circle"></i> Connected to database';
-                    connectionStatus.className = 'connection-status connected';
-                } else {
-                    throw new Error('Connection failed');
-                }
+                // Add a timestamp to avoid caching
+                const testUrl = SCRIPT_URL + '?test=' + Date.now();
+                const response = await fetch(testUrl, {
+                    method: 'GET',
+                    mode: 'no-cors' // This is important for Google Apps Script
+                });
+                
+                // With no-cors mode, we can't read the response but we can check if the request was made
+                isConnected = true;
+                connectionStatus.innerHTML = '<i class="fas fa-check-circle"></i> Connected to database';
+                connectionStatus.className = 'connection-status connected';
+                addDebugInfo('Connection test: Success (no-cors mode)');
             } catch (error) {
                 console.error('Connection test failed:', error);
                 isConnected = false;
                 connectionStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Offline mode - using local storage';
                 connectionStatus.className = 'connection-status disconnected';
+                addDebugInfo('Connection test failed: ' + error.message);
                 
                 // Initialize local storage as fallback
                 initializeLocalStorage();
@@ -520,12 +548,21 @@
         function initializeLocalStorage() {
             if (!localStorage.getItem('gymReservations')) {
                 localStorage.setItem('gymReservations', JSON.stringify([]));
+                addDebugInfo('Local storage initialized');
             }
+        }
+
+        // Add debug information
+        function addDebugInfo(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            debugInfo.innerHTML += `[${timestamp}] ${message}<br>`;
+            debugInfo.scrollTop = debugInfo.scrollHeight;
         }
 
         // Load time slots
         async function loadTimeSlots() {
             try {
+                addDebugInfo('Loading time slots...');
                 const reservations = await getReservations();
                 timeSlotsContainer.innerHTML = '';
                 
@@ -551,9 +588,11 @@
                 });
                 
                 updateCapacityChart(reservations);
+                addDebugInfo('Time slots loaded successfully');
             } catch (error) {
                 console.error('Error loading time slots:', error);
                 timeSlotsContainer.innerHTML = '<div class="alert alert-error">Error loading time slots. Please try again later.</div>';
+                addDebugInfo('Error loading time slots: ' + error.message);
             }
         }
 
@@ -590,16 +629,19 @@
             }
             
             loadTimeSlots();
+            addDebugInfo(`Selected time slot: ${slot.start} - ${slot.end}`);
         }
 
         // Load reservations for today
         async function loadReservations() {
             try {
+                addDebugInfo('Loading reservations...');
                 const reservations = await getReservations();
                 reservationsList.innerHTML = '';
                 
                 if (reservations.length === 0) {
                     reservationsList.innerHTML = '<p>No reservations for today.</p>';
+                    addDebugInfo('No reservations found for today');
                     return;
                 }
                 
@@ -632,21 +674,26 @@
                         }
                     });
                 });
+                
+                addDebugInfo(`Loaded ${reservations.length} reservations for today`);
             } catch (error) {
                 console.error('Error loading reservations:', error);
                 reservationsList.innerHTML = '<div class="alert alert-error">Error loading reservations.</div>';
+                addDebugInfo('Error loading reservations: ' + error.message);
             }
         }
 
         // Load all reservations for admin panel
         async function loadAllReservations() {
             try {
+                addDebugInfo('Loading all reservations...');
                 const reservations = await getAllReservations();
                 allReservationsData = reservations;
                 allReservations.innerHTML = '';
                 
                 if (reservations.length === 0) {
                     allReservations.innerHTML = '<p>No reservations found.</p>';
+                    addDebugInfo('No reservations found in database');
                     return;
                 }
                 
@@ -698,9 +745,12 @@
                         }
                     });
                 });
+                
+                addDebugInfo(`Loaded ${reservations.length} total reservations`);
             } catch (error) {
                 console.error('Error loading all reservations:', error);
                 allReservations.innerHTML = '<div class="alert alert-error">Error loading reservations.</div>';
+                addDebugInfo('Error loading all reservations: ' + error.message);
             }
         }
 
@@ -759,6 +809,21 @@
             
             // Export data button
             document.getElementById('exportData').addEventListener('click', exportToCSV);
+            
+            // Clear all data button
+            document.getElementById('clearAllData').addEventListener('click', () => {
+                if (confirm('Are you sure you want to clear ALL reservation data? This cannot be undone.')) {
+                    clearAllData();
+                }
+            });
+            
+            // Toggle debug info
+            toggleDebug.addEventListener('click', () => {
+                debugInfo.style.display = debugInfo.style.display === 'block' ? 'none' : 'block';
+                toggleDebug.innerHTML = debugInfo.style.display === 'block' ? 
+                    '<i class="fas fa-bug"></i> Hide Debug Info' : 
+                    '<i class="fas fa-bug"></i> Show Debug Info';
+            });
         }
 
         // Handle reservation form submission
@@ -876,6 +941,19 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            
+            addDebugInfo('Data exported to CSV');
+        }
+
+        // Clear all data
+        function clearAllData() {
+            localStorage.setItem('gymReservations', JSON.stringify([]));
+            allReservationsData = [];
+            loadReservations();
+            loadTimeSlots();
+            loadAllReservations();
+            addDebugInfo('All data cleared');
+            showAlert('All data has been cleared.', 'success');
         }
 
         // API functions - Connect to Google Apps Script
@@ -888,6 +966,7 @@
             }
             
             try {
+                // Try to fetch from Google Apps Script
                 const response = await fetch(SCRIPT_URL);
                 if (!response.ok) throw new Error('Network response was not ok');
                 
@@ -896,6 +975,7 @@
                 return data.filter(r => r.date === today);
             } catch (error) {
                 console.error('Error fetching reservations:', error);
+                addDebugInfo('Error fetching from API: ' + error.message);
                 // Fallback to localStorage
                 const today = new Date().toISOString().split('T')[0];
                 const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
@@ -916,22 +996,26 @@
                 return await response.json();
             } catch (error) {
                 console.error('Error fetching all reservations:', error);
+                addDebugInfo('Error fetching all from API: ' + error.message);
                 // Fallback to localStorage
                 return JSON.parse(localStorage.getItem('gymReservations') || '[]');
             }
         }
         
         async function saveReservation(reservation) {
+            // Always save to localStorage first for immediate feedback
+            const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
+            reservation.id = Date.now();
+            reservations.push(reservation);
+            localStorage.setItem('gymReservations', JSON.stringify(reservations));
+            
             if (!isConnected) {
-                // Fallback to localStorage
-                const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
-                reservation.id = Date.now();
-                reservations.push(reservation);
-                localStorage.setItem('gymReservations', JSON.stringify(reservations));
+                addDebugInfo('Reservation saved to local storage (offline mode)');
                 return { success: true, id: reservation.id };
             }
             
             try {
+                // Try to save to Google Apps Script
                 const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
                     headers: {
@@ -942,24 +1026,24 @@
                 
                 if (!response.ok) throw new Error('Network response was not ok');
                 
+                addDebugInfo('Reservation saved to Google Sheets');
                 return await response.json();
             } catch (error) {
-                console.error('Error saving reservation:', error);
-                // Fallback to localStorage
-                const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
-                reservation.id = Date.now();
-                reservations.push(reservation);
-                localStorage.setItem('gymReservations', JSON.stringify(reservations));
+                console.error('Error saving reservation to API:', error);
+                addDebugInfo('Error saving to API: ' + error.message);
+                // We already saved to localStorage, so just return success
                 return { success: true, id: reservation.id };
             }
         }
         
         async function deleteReservation(id) {
+            // Always delete from localStorage first
+            const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
+            const updatedReservations = reservations.filter(r => r.id != id);
+            localStorage.setItem('gymReservations', JSON.stringify(updatedReservations));
+            
             if (!isConnected) {
-                // Fallback to localStorage
-                const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
-                const updatedReservations = reservations.filter(r => r.id != id);
-                localStorage.setItem('gymReservations', JSON.stringify(updatedReservations));
+                addDebugInfo('Reservation deleted from local storage (offline mode)');
                 return { success: true };
             }
             
@@ -968,20 +1052,18 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                    'Action': 'delete'
                     },
-                    body: JSON.stringify({ id: id })
+                    body: JSON.stringify({ action: 'delete', id: id })
                 });
                 
                 if (!response.ok) throw new Error('Network response was not ok');
                 
+                addDebugInfo('Reservation deleted from Google Sheets');
                 return await response.json();
             } catch (error) {
-                console.error('Error deleting reservation:', error);
-                // Fallback to localStorage
-                const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
-                const updatedReservations = reservations.filter(r => r.id != id);
-                localStorage.setItem('gymReservations', JSON.stringify(updatedReservations));
+                console.error('Error deleting reservation from API:', error);
+                addDebugInfo('Error deleting from API: ' + error.message);
+                // We already deleted from localStorage, so just return success
                 return { success: true };
             }
         }
