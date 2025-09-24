@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gym Class Reservation System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        :root {
+            --primary: #3498db;
+            --secondary: #2ecc71;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --dark: #2c3e50;
+            --light: #ecf0f1;
+            --gray: #95a5a6;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--dark), var(--primary));
+            color: white;
+            padding: 30px 0;
+            text-align: center;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        
+        .card h2 {
+            color: var(--dark);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--light);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .time-slots {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .time-slot {
+            background: var(--light);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .time-slot:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .time-slot.selected {
+            background: var(--primary);
+            color: white;
+            border-color: var(--dark);
+        }
+        
+        .time-slot.full {
+            background: var(--gray);
+            color: white;
+            cursor: not-allowed;
+        }
+        
+        .time-slot.soon {
+            background: #fff3cd;
+            border-color: var(--warning);
+        }
+        
+        .time-slot h3 {
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+        
+        .time-slot .count {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border 0.3s;
+        }
+        
+        input:focus, select:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+        
+        button {
+            background: var(--secondary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: background 0.3s;
+            width: 100%;
+        }
+        
+        button:hover {
+            background: #27ae60;
+        }
+        
+        button:disabled {
+            background: var(--gray);
+            cursor: not-allowed;
+        }
+        
+        .reservations-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .reservation-item {
+            background: var(--light);
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .reservation-info h4 {
+            margin-bottom: 5px;
+        }
+        
+        .reservation-info p {
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+        
+        .delete-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+        
+        .instructions {
+            background: #fff9e6;
+            border-left: 4px solid #ffcc00;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 0 5px 5px 0;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--gray);
+        }
+        
+        .capacity-meter {
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        
+        .capacity-fill {
+            height: 100%;
+            background: var(--secondary);
+            border-radius: 10px;
+            transition: width 0.5s;
+        }
+        
+        .admin-panel {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .tab-buttons {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .tab-button {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--dark);
+            font-weight: 600;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .tab-button.active {
+            border-bottom-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1><i class="fas fa-dumbbell"></i> Fitness Center</h1>
+            <p class="subtitle">Class Reservation System</p>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="instructions">
+            <h3><i class="fas fa-info-circle"></i> How to Use</h3>
+            <p>Select a time slot, fill in your details, and click "Make Reservation". Personalized programs automatically book 2 hours. Maximum 8 people per time slot.</p>
+        </div>
+        
+        <div class="alert alert-success" id="successAlert">
+            Reservation successfully made!
+        </div>
+        
+        <div class="alert alert-error" id="errorAlert">
+            Error making reservation. Please try again.
+        </div>
+        
+        <div class="tab-buttons">
+            <button class="tab-button active" data-tab="reservation">Make Reservation</button>
+            <button class="tab-button" data-tab="admin">Admin Panel</button>
+        </div>
+        
+        <div class="tab-content active" id="reservation-tab">
+            <div class="main-content">
+                <div class="left-column">
+                    <div class="card">
+                        <h2><i class="far fa-calendar-alt"></i> Available Time Slots</h2>
+                        <div class="time-slots" id="timeSlots">
+                            <div class="loading">Loading time slots...</div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h2><i class="fas fa-clipboard-list"></i> Make a Reservation</h2>
+                        <form id="reservationForm">
+                            <div class="form-group">
+                                <label for="name">Full Name</label>
+                                <input type="text" id="name" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="email">Email</label>
+                                <input type="email" id="email" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="programType">Program Type</label>
+                                <select id="programType">
+                                    <option value="regular">Regular Class (1 hour)</option>
+                                    <option value="personalized">Personalized Program (2 hours)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="selectedTime">Selected Time Slot</label>
+                                <input type="text" id="selectedTime" readonly placeholder="Select a time slot above">
+                            </div>
+                            
+                            <button type="submit" id="reserveBtn">Make Reservation</button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="right-column">
+                    <div class="card">
+                        <h2><i class="fas fa-history"></i> Today's Reservations</h2>
+                        <div class="reservations-list" id="reservationsList">
+                            <div class="loading">Loading reservations...</div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h2><i class="fas fa-chart-bar"></i> Capacity Overview</h2>
+                        <div id="capacityChart">
+                            <!-- Capacity chart will be generated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="admin-tab">
+            <div class="card">
+                <h2><i class="fas fa-cog"></i> Admin Panel</h2>
+                <p>Use this panel to manage reservations and view all data.</p>
+                
+                <div class="admin-panel">
+                    <h3>All Reservations</h3>
+                    <div id="allReservations">
+                        <div class="loading">Loading all reservations...</div>
+                    </div>
+                    
+                    <button id="exportData" style="width: auto; margin-top: 20px;">
+                        <i class="fas fa-download"></i> Export Data to CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <div class="container">
+            <p>Gym Class Reservation System &copy; 2023 | Maximum Capacity: 8 people per time slot</p>
+            <p>Powered by Google Sheets API</p>
+        </div>
+    </footer>
+
+    <script>
+        // Configuration - Replace with your own Google Apps Script URL
+        const SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
+        
+        // Time slots data
+        const timeSlots = [
+            { id: 1, start: "6:00", end: "8:00", maxCapacity: 8 },
+            { id: 2, start: "9:00", end: "10:00", maxCapacity: 8 },
+            { id: 3, start: "12:30", end: "14:00", maxCapacity: 8 },
+            { id: 4, start: "17:30", end: "18:30", maxCapacity: 8 },
+            { id: 5, start: "18:30", end: "19:30", maxCapacity: 8 },
+            { id: 6, start: "19:30", end: "20:30", maxCapacity: 8 }
+        ];
+
+        // DOM elements
+        const timeSlotsContainer = document.getElementById('timeSlots');
+        const reservationsList = document.getElementById('reservationsList');
+        const reservationForm = document.getElementById('reservationForm');
+        const selectedTimeInput = document.getElementById('selectedTime');
+        const programTypeSelect = document.getElementById('programType');
+        const successAlert = document.getElementById('successAlert');
+        const errorAlert = document.getElementById('errorAlert');
+        const capacityChart = document.getElementById('capacityChart');
+        const allReservations = document.getElementById('allReservations');
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        let selectedTimeSlot = null;
+        let allReservationsData = [];
+
+        // Initialize the app
+        function initializeApp() {
+            loadTimeSlots();
+            loadReservations();
+            loadAllReservations();
+            setupEventListeners();
+        }
+
+        // Load time slots
+        async function loadTimeSlots() {
+            try {
+                const reservations = await getReservations();
+                timeSlotsContainer.innerHTML = '';
+                
+                timeSlots.forEach(slot => {
+                    const reservationsForSlot = reservations.filter(r => r.timeSlotId === slot.id);
+                    const currentCount = reservationsForSlot.length;
+                    const isFull = currentCount >= slot.maxCapacity;
+                    const isSoon = isTimeSlotSoon(slot);
+                    
+                    const timeSlotElement = document.createElement('div');
+                    timeSlotElement.className = `time-slot ${isFull ? 'full' : ''} ${isSoon ? 'soon' : ''} ${selectedTimeSlot === slot.id ? 'selected' : ''}`;
+                    timeSlotElement.innerHTML = `
+                        <h3>${slot.start} - ${slot.end}</h3>
+                        <div class="count">${currentCount}/${slot.maxCapacity} reserved</div>
+                        ${isSoon ? '<div><small>Starting soon!</small></div>' : ''}
+                    `;
+                    
+                    if (!isFull) {
+                        timeSlotElement.addEventListener('click', () => selectTimeSlot(slot.id));
+                    }
+                    
+                    timeSlotsContainer.appendChild(timeSlotElement);
+                });
+                
+                updateCapacityChart(reservations);
+            } catch (error) {
+                console.error('Error loading time slots:', error);
+                timeSlotsContainer.innerHTML = '<div class="alert alert-error">Error loading time slots. Please try again later.</div>';
+            }
+        }
+
+        // Check if a time slot is starting soon (within the next hour)
+        function isTimeSlotSoon(slot) {
+            const now = new Date();
+            const slotStartTime = new Date();
+            const [startHour, startMinute] = slot.start.split(':').map(Number);
+            
+            slotStartTime.setHours(startHour, startMinute, 0, 0);
+            
+            // Check if the slot starts within the next hour
+            const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+            
+            return slotStartTime > now && slotStartTime <= oneHourFromNow;
+        }
+
+        // Select a time slot
+        function selectTimeSlot(timeSlotId) {
+            selectedTimeSlot = timeSlotId;
+            const slot = timeSlots.find(s => s.id === timeSlotId);
+            
+            if (programTypeSelect.value === 'personalized') {
+                // For personalized programs, book 2 hours
+                const nextSlot = timeSlots.find(s => s.start === slot.end);
+                if (nextSlot) {
+                    selectedTimeInput.value = `${slot.start} - ${nextSlot.end} (2 hours)`;
+                } else {
+                    selectedTimeInput.value = `${slot.start} - ${slot.end}`;
+                    alert('Personalized programs require 2 consecutive hours. This is the last slot of the day.');
+                }
+            } else {
+                selectedTimeInput.value = `${slot.start} - ${slot.end}`;
+            }
+            
+            loadTimeSlots();
+        }
+
+        // Load reservations for today
+        async function loadReservations() {
+            try {
+                const reservations = await getReservations();
+                reservationsList.innerHTML = '';
+                
+                if (reservations.length === 0) {
+                    reservationsList.innerHTML = '<p>No reservations for today.</p>';
+                    return;
+                }
+                
+                reservations.forEach(reservation => {
+                    const slot = timeSlots.find(s => s.id === reservation.timeSlotId);
+                    const reservationElement = document.createElement('div');
+                    reservationElement.className = 'reservation-item';
+                    reservationElement.innerHTML = `
+                        <div class="reservation-info">
+                            <h4>${reservation.name}</h4>
+                            <p>${slot.start} - ${slot.end} | ${reservation.programType === 'personalized' ? 'Personalized (2h)' : 'Regular'}</p>
+                            <small>${reservation.email}</small>
+                        </div>
+                        <button class="delete-btn" data-id="${reservation.id}">Delete</button>
+                    `;
+                    reservationsList.appendChild(reservationElement);
+                });
+                
+                // Add event listeners to delete buttons
+                document.querySelectorAll('.delete-btn').forEach(button => {
+                    button.addEventListener('click', async (e) => {
+                        const id = e.target.getAttribute('data-id');
+                        if (confirm('Are you sure you want to delete this reservation?')) {
+                            await deleteReservation(id);
+                            loadReservations();
+                            loadTimeSlots();
+                            loadAllReservations();
+                        }
+                    });
+                });
+            } catch (error) {
+                console.error('Error loading reservations:', error);
+                reservationsList.innerHTML = '<div class="alert alert-error">Error loading reservations.</div>';
+            }
+        }
+
+        // Load all reservations for admin panel
+        async function loadAllReservations() {
+            try {
+                const reservations = await getAllReservations();
+                allReservationsData = reservations;
+                allReservations.innerHTML = '';
+                
+                if (reservations.length === 0) {
+                    allReservations.innerHTML = '<p>No reservations found.</p>';
+                    return;
+                }
+                
+                // Group by date
+                const groupedByDate = {};
+                reservations.forEach(reservation => {
+                    const date = reservation.date;
+                    if (!groupedByDate[date]) {
+                        groupedByDate[date] = [];
+                    }
+                    groupedByDate[date].push(reservation);
+                });
+                
+                // Display by date
+                for (const [date, dateReservations] of Object.entries(groupedByDate)) {
+                    const dateHeader = document.createElement('h4');
+                    dateHeader.textContent = `Reservations for ${date}`;
+                    allReservations.appendChild(dateHeader);
+                    
+                    dateReservations.forEach(reservation => {
+                        const slot = timeSlots.find(s => s.id === reservation.timeSlotId);
+                        const reservationElement = document.createElement('div');
+                        reservationElement.className = 'reservation-item';
+                        reservationElement.innerHTML = `
+                            <div class="reservation-info">
+                                <h4>${reservation.name}</h4>
+                                <p>${slot.start} - ${slot.end} | ${reservation.programType === 'personalized' ? 'Personalized (2h)' : 'Regular'}</p>
+                                <small>${reservation.email} | Booked on: ${reservation.bookingDate}</small>
+                            </div>
+                            <button class="delete-btn" data-id="${reservation.id}">Delete</button>
+                        `;
+                        allReservations.appendChild(reservationElement);
+                    });
+                }
+                
+                // Add event listeners to delete buttons in admin panel
+                document.querySelectorAll('#allReservations .delete-btn').forEach(button => {
+                    button.addEventListener('click', async (e) => {
+                        const id = e.target.getAttribute('data-id');
+                        if (confirm('Are you sure you want to delete this reservation?')) {
+                            await deleteReservation(id);
+                            loadReservations();
+                            loadTimeSlots();
+                            loadAllReservations();
+                        }
+                    });
+                });
+            } catch (error) {
+                console.error('Error loading all reservations:', error);
+                allReservations.innerHTML = '<div class="alert alert-error">Error loading reservations.</div>';
+            }
+        }
+
+        // Update capacity chart
+        function updateCapacityChart(reservations) {
+            capacityChart.innerHTML = '';
+            
+            timeSlots.forEach(slot => {
+                const reservationsForSlot = reservations.filter(r => r.timeSlotId === slot.id);
+                const currentCount = reservationsForSlot.length;
+                const percentage = (currentCount / slot.maxCapacity) * 100;
+                
+                const slotElement = document.createElement('div');
+                slotElement.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>${slot.start} - ${slot.end}</span>
+                        <span>${currentCount}/${slot.maxCapacity}</span>
+                    </div>
+                    <div class="capacity-meter">
+                        <div class="capacity-fill" style="width: ${percentage}%"></div>
+                    </div>
+                `;
+                capacityChart.appendChild(slotElement);
+            });
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            reservationForm.addEventListener('submit', handleReservationSubmit);
+            
+            programTypeSelect.addEventListener('change', () => {
+                if (selectedTimeSlot) {
+                    selectTimeSlot(selectedTimeSlot); // Re-run to update the time display
+                }
+            });
+            
+            // Tab switching
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const tabId = button.getAttribute('data-tab');
+                    
+                    // Update active tab button
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    
+                    // Update active tab content
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    document.getElementById(`${tabId}-tab`).classList.add('active');
+                    
+                    // Reload data if switching to admin tab
+                    if (tabId === 'admin') {
+                        loadAllReservations();
+                    }
+                });
+            });
+            
+            // Export data button
+            document.getElementById('exportData').addEventListener('click', exportToCSV);
+        }
+
+        // Handle reservation form submission
+        async function handleReservationSubmit(e) {
+            e.preventDefault();
+            
+            if (!selectedTimeSlot) {
+                showAlert('Please select a time slot.', 'error');
+                return;
+            }
+            
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const programType = programTypeSelect.value;
+            
+            // Check if the selected time slot is still available
+            const slot = timeSlots.find(s => s.id === selectedTimeSlot);
+            const reservations = await getReservations();
+            const reservationsForSlot = reservations.filter(r => r.timeSlotId === selectedTimeSlot);
+            
+            if (reservationsForSlot.length >= slot.maxCapacity) {
+                showAlert('This time slot is now full. Please select another.', 'error');
+                loadTimeSlots();
+                return;
+            }
+            
+            // For personalized programs, check if the next slot is also available
+            if (programType === 'personalized') {
+                const nextSlot = timeSlots.find(s => s.start === slot.end);
+                if (nextSlot) {
+                    const nextSlotReservations = reservations.filter(r => r.timeSlotId === nextSlot.id);
+                    if (nextSlotReservations.length >= nextSlot.maxCapacity) {
+                        showAlert('The consecutive time slot needed for personalized programs is full. Please select another time.', 'error');
+                        return;
+                    }
+                } else {
+                    showAlert('Personalized programs require 2 consecutive hours. Please select a different time slot.', 'error');
+                    return;
+                }
+            }
+            
+            // Create reservation
+            const reservation = {
+                name,
+                email,
+                programType,
+                timeSlotId: selectedTimeSlot,
+                date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
+                bookingDate: new Date().toLocaleString()
+            };
+            
+            try {
+                // Save reservation
+                await saveReservation(reservation);
+                
+                // Show success message
+                showAlert('Reservation successfully made!', 'success');
+                
+                // Reset form
+                reservationForm.reset();
+                selectedTimeSlot = null;
+                selectedTimeInput.value = '';
+                
+                // Reload data
+                loadTimeSlots();
+                loadReservations();
+                loadAllReservations();
+            } catch (error) {
+                console.error('Error saving reservation:', error);
+                showAlert('Error making reservation. Please try again.', 'error');
+            }
+        }
+
+        // Show alert message
+        function showAlert(message, type) {
+            const alertElement = type === 'success' ? successAlert : errorAlert;
+            alertElement.textContent = message;
+            alertElement.style.display = 'block';
+            
+            setTimeout(() => {
+                alertElement.style.display = 'none';
+            }, 5000);
+        }
+
+        // Export data to CSV
+        function exportToCSV() {
+            if (allReservationsData.length === 0) {
+                alert('No data to export.');
+                return;
+            }
+            
+            const headers = ['Name', 'Email', 'Program Type', 'Time Slot', 'Date', 'Booking Date'];
+            const csvContent = [
+                headers.join(','),
+                ...allReservationsData.map(reservation => {
+                    const slot = timeSlots.find(s => s.id === reservation.timeSlotId);
+                    const timeSlot = slot ? `${slot.start} - ${slot.end}` : 'Unknown';
+                    return [
+                        `"${reservation.name}"`,
+                        `"${reservation.email}"`,
+                        `"${reservation.programType}"`,
+                        `"${timeSlot}"`,
+                        `"${reservation.date}"`,
+                        `"${reservation.bookingDate}"`
+                    ].join(',');
+                })
+            ].join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `gym-reservations-${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // API functions - These would normally connect to a backend
+        // For this demo, we're using localStorage as a simulated backend
+        
+        async function getReservations() {
+            // In a real implementation, this would be a fetch call to your backend
+            // For demo purposes, we're using localStorage
+            const today = new Date().toISOString().split('T')[0];
+            const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
+            return reservations.filter(r => r.date === today);
+        }
+        
+        async function getAllReservations() {
+            // In a real implementation, this would be a fetch call to your backend
+            const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
+            return reservations;
+        }
+        
+        async function saveReservation(reservation) {
+            // In a real implementation, this would be a fetch call to your backend
+            const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
+            reservation.id = Date.now(); // Simple ID generation
+            reservations.push(reservation);
+            localStorage.setItem('gymReservations', JSON.stringify(reservations));
+            
+            // Simulate API delay
+            return new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+        async function deleteReservation(id) {
+            // In a real implementation, this would be a fetch call to your backend
+            const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
+            const updatedReservations = reservations.filter(r => r.id !== id);
+            localStorage.setItem('gymReservations', JSON.stringify(updatedReservations));
+            
+            // Simulate API delay
+            return new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>
