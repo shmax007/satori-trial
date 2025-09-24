@@ -308,6 +308,26 @@
         .tab-content.active {
             display: block;
         }
+        
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+        
+        .connection-status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .connection-status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
     </style>
 </head>
 <body>
@@ -330,6 +350,10 @@
         
         <div class="alert alert-error" id="errorAlert">
             Error making reservation. Please try again.
+        </div>
+        
+        <div id="connectionStatus" class="connection-status">
+            <i class="fas fa-sync fa-spin"></i> Checking connection...
         </div>
         
         <div class="tab-buttons">
@@ -423,8 +447,8 @@
     </footer>
 
     <script>
-        // Configuration - Replace with your own Google Apps Script URL
-        const SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
+        // Configuration - Using your Google Apps Script URL
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzamSRbmBnJRUkYfLERMbbpmkyV2ljOGm8g1FyEZ3QgJARa6Af6_5gQ1mLOiTSUA-l8/exec';
         
         // Time slots data
         const timeSlots = [
@@ -448,16 +472,55 @@
         const allReservations = document.getElementById('allReservations');
         const tabButtons = document.querySelectorAll('.tab-button');
         const tabContents = document.querySelectorAll('.tab-content');
+        const connectionStatus = document.getElementById('connectionStatus');
 
         let selectedTimeSlot = null;
         let allReservationsData = [];
+        let isConnected = false;
 
         // Initialize the app
-        function initializeApp() {
-            loadTimeSlots();
-            loadReservations();
-            loadAllReservations();
+        async function initializeApp() {
+            // Test connection first
+            await testConnection();
+            
+            if (isConnected) {
+                loadTimeSlots();
+                loadReservations();
+                loadAllReservations();
+            }
+            
             setupEventListeners();
+        }
+
+        // Test connection to Google Apps Script
+        async function testConnection() {
+            try {
+                connectionStatus.innerHTML = '<i class="fas fa-sync fa-spin"></i> Testing connection...';
+                
+                const response = await fetch(SCRIPT_URL);
+                if (response.ok) {
+                    isConnected = true;
+                    connectionStatus.innerHTML = '<i class="fas fa-check-circle"></i> Connected to database';
+                    connectionStatus.className = 'connection-status connected';
+                } else {
+                    throw new Error('Connection failed');
+                }
+            } catch (error) {
+                console.error('Connection test failed:', error);
+                isConnected = false;
+                connectionStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Offline mode - using local storage';
+                connectionStatus.className = 'connection-status disconnected';
+                
+                // Initialize local storage as fallback
+                initializeLocalStorage();
+            }
+        }
+
+        // Initialize local storage as fallback
+        function initializeLocalStorage() {
+            if (!localStorage.getItem('gymReservations')) {
+                localStorage.setItem('gymReservations', JSON.stringify([]));
+            }
         }
 
         // Load time slots
@@ -467,7 +530,7 @@
                 timeSlotsContainer.innerHTML = '';
                 
                 timeSlots.forEach(slot => {
-                    const reservationsForSlot = reservations.filter(r => r.timeSlotId === slot.id);
+                    const reservationsForSlot = reservations.filter(r => r.timeSlotId == slot.id);
                     const currentCount = reservationsForSlot.length;
                     const isFull = currentCount >= slot.maxCapacity;
                     const isSoon = isTimeSlotSoon(slot);
@@ -541,7 +604,9 @@
                 }
                 
                 reservations.forEach(reservation => {
-                    const slot = timeSlots.find(s => s.id === reservation.timeSlotId);
+                    const slot = timeSlots.find(s => s.id == reservation.timeSlotId);
+                    if (!slot) return;
+                    
                     const reservationElement = document.createElement('div');
                     reservationElement.className = 'reservation-item';
                     reservationElement.innerHTML = `
@@ -588,7 +653,7 @@
                 // Group by date
                 const groupedByDate = {};
                 reservations.forEach(reservation => {
-                    const date = reservation.date;
+                    const date = reservation.date || 'Unknown Date';
                     if (!groupedByDate[date]) {
                         groupedByDate[date] = [];
                     }
@@ -599,17 +664,21 @@
                 for (const [date, dateReservations] of Object.entries(groupedByDate)) {
                     const dateHeader = document.createElement('h4');
                     dateHeader.textContent = `Reservations for ${date}`;
+                    dateHeader.style.marginTop = '20px';
+                    dateHeader.style.marginBottom = '10px';
                     allReservations.appendChild(dateHeader);
                     
                     dateReservations.forEach(reservation => {
-                        const slot = timeSlots.find(s => s.id === reservation.timeSlotId);
+                        const slot = timeSlots.find(s => s.id == reservation.timeSlotId);
+                        const timeSlotText = slot ? `${slot.start} - ${slot.end}` : 'Unknown Time';
+                        
                         const reservationElement = document.createElement('div');
                         reservationElement.className = 'reservation-item';
                         reservationElement.innerHTML = `
                             <div class="reservation-info">
                                 <h4>${reservation.name}</h4>
-                                <p>${slot.start} - ${slot.end} | ${reservation.programType === 'personalized' ? 'Personalized (2h)' : 'Regular'}</p>
-                                <small>${reservation.email} | Booked on: ${reservation.bookingDate}</small>
+                                <p>${timeSlotText} | ${reservation.programType === 'personalized' ? 'Personalized (2h)' : 'Regular'}</p>
+                                <small>${reservation.email} | Booked on: ${reservation.bookingDate || 'Unknown'}</small>
                             </div>
                             <button class="delete-btn" data-id="${reservation.id}">Delete</button>
                         `;
@@ -640,7 +709,7 @@
             capacityChart.innerHTML = '';
             
             timeSlots.forEach(slot => {
-                const reservationsForSlot = reservations.filter(r => r.timeSlotId === slot.id);
+                const reservationsForSlot = reservations.filter(r => r.timeSlotId == slot.id);
                 const currentCount = reservationsForSlot.length;
                 const percentage = (currentCount / slot.maxCapacity) * 100;
                 
@@ -708,7 +777,7 @@
             // Check if the selected time slot is still available
             const slot = timeSlots.find(s => s.id === selectedTimeSlot);
             const reservations = await getReservations();
-            const reservationsForSlot = reservations.filter(r => r.timeSlotId === selectedTimeSlot);
+            const reservationsForSlot = reservations.filter(r => r.timeSlotId == selectedTimeSlot);
             
             if (reservationsForSlot.length >= slot.maxCapacity) {
                 showAlert('This time slot is now full. Please select another.', 'error');
@@ -720,7 +789,7 @@
             if (programType === 'personalized') {
                 const nextSlot = timeSlots.find(s => s.start === slot.end);
                 if (nextSlot) {
-                    const nextSlotReservations = reservations.filter(r => r.timeSlotId === nextSlot.id);
+                    const nextSlotReservations = reservations.filter(r => r.timeSlotId == nextSlot.id);
                     if (nextSlotReservations.length >= nextSlot.maxCapacity) {
                         showAlert('The consecutive time slot needed for personalized programs is full. Please select another time.', 'error');
                         return;
@@ -785,7 +854,7 @@
             const csvContent = [
                 headers.join(','),
                 ...allReservationsData.map(reservation => {
-                    const slot = timeSlots.find(s => s.id === reservation.timeSlotId);
+                    const slot = timeSlots.find(s => s.id == reservation.timeSlotId);
                     const timeSlot = slot ? `${slot.start} - ${slot.end}` : 'Unknown';
                     return [
                         `"${reservation.name}"`,
@@ -809,42 +878,112 @@
             URL.revokeObjectURL(url);
         }
 
-        // API functions - These would normally connect to a backend
-        // For this demo, we're using localStorage as a simulated backend
-        
+        // API functions - Connect to Google Apps Script
         async function getReservations() {
-            // In a real implementation, this would be a fetch call to your backend
-            // For demo purposes, we're using localStorage
-            const today = new Date().toISOString().split('T')[0];
-            const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
-            return reservations.filter(r => r.date === today);
+            if (!isConnected) {
+                // Fallback to localStorage
+                const today = new Date().toISOString().split('T')[0];
+                const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
+                return reservations.filter(r => r.date === today);
+            }
+            
+            try {
+                const response = await fetch(SCRIPT_URL);
+                if (!response.ok) throw new Error('Network response was not ok');
+                
+                const data = await response.json();
+                const today = new Date().toISOString().split('T')[0];
+                return data.filter(r => r.date === today);
+            } catch (error) {
+                console.error('Error fetching reservations:', error);
+                // Fallback to localStorage
+                const today = new Date().toISOString().split('T')[0];
+                const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
+                return reservations.filter(r => r.date === today);
+            }
         }
         
         async function getAllReservations() {
-            // In a real implementation, this would be a fetch call to your backend
-            const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
-            return reservations;
+            if (!isConnected) {
+                // Fallback to localStorage
+                return JSON.parse(localStorage.getItem('gymReservations') || '[]');
+            }
+            
+            try {
+                const response = await fetch(SCRIPT_URL);
+                if (!response.ok) throw new Error('Network response was not ok');
+                
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching all reservations:', error);
+                // Fallback to localStorage
+                return JSON.parse(localStorage.getItem('gymReservations') || '[]');
+            }
         }
         
         async function saveReservation(reservation) {
-            // In a real implementation, this would be a fetch call to your backend
-            const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
-            reservation.id = Date.now(); // Simple ID generation
-            reservations.push(reservation);
-            localStorage.setItem('gymReservations', JSON.stringify(reservations));
+            if (!isConnected) {
+                // Fallback to localStorage
+                const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
+                reservation.id = Date.now();
+                reservations.push(reservation);
+                localStorage.setItem('gymReservations', JSON.stringify(reservations));
+                return { success: true, id: reservation.id };
+            }
             
-            // Simulate API delay
-            return new Promise(resolve => setTimeout(resolve, 500));
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(reservation)
+                });
+                
+                if (!response.ok) throw new Error('Network response was not ok');
+                
+                return await response.json();
+            } catch (error) {
+                console.error('Error saving reservation:', error);
+                // Fallback to localStorage
+                const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
+                reservation.id = Date.now();
+                reservations.push(reservation);
+                localStorage.setItem('gymReservations', JSON.stringify(reservations));
+                return { success: true, id: reservation.id };
+            }
         }
         
         async function deleteReservation(id) {
-            // In a real implementation, this would be a fetch call to your backend
-            const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
-            const updatedReservations = reservations.filter(r => r.id !== id);
-            localStorage.setItem('gymReservations', JSON.stringify(updatedReservations));
+            if (!isConnected) {
+                // Fallback to localStorage
+                const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
+                const updatedReservations = reservations.filter(r => r.id != id);
+                localStorage.setItem('gymReservations', JSON.stringify(updatedReservations));
+                return { success: true };
+            }
             
-            // Simulate API delay
-            return new Promise(resolve => setTimeout(resolve, 500));
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    'Action': 'delete'
+                    },
+                    body: JSON.stringify({ id: id })
+                });
+                
+                if (!response.ok) throw new Error('Network response was not ok');
+                
+                return await response.json();
+            } catch (error) {
+                console.error('Error deleting reservation:', error);
+                // Fallback to localStorage
+                const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
+                const updatedReservations = reservations.filter(r => r.id != id);
+                localStorage.setItem('gymReservations', JSON.stringify(updatedReservations));
+                return { success: true };
+            }
         }
 
         // Initialize the app when DOM is loaded
