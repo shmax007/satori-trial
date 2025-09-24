@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gym Class Reservation System</title>
+    <title>SATORI STRENGTH - Gym Reservation</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary: #3498db;
-            --secondary: #2ecc71;
-            --danger: #e74c3c;
-            --warning: #f39c12;
-            --dark: #2c3e50;
-            --light: #ecf0f1;
-            --gray: #95a5a6;
+            --primary: #e74c3c;
+            --secondary: #c0392b;
+            --accent: #f1c40f;
+            --dark: #121212;
+            --darker: #0a0a0a;
+            --light: #e0e0e0;
+            --gray: #b0b0b0;
+            --card-bg: #1a1a1a;
         }
         
         * {
@@ -24,9 +25,10 @@
         }
         
         body {
-            background-color: #f5f7fa;
-            color: #333;
+            background-color: var(--darker);
+            color: var(--light);
             line-height: 1.6;
+            min-height: 100vh;
         }
         
         .container {
@@ -36,97 +38,157 @@
         }
         
         header {
-            background: linear-gradient(135deg, var(--dark), var(--primary));
+            background: linear-gradient(135deg, var(--dark), var(--darker));
             color: white;
-            padding: 30px 0;
+            padding: 40px 0;
             text-align: center;
-            border-radius: 0 0 10px 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-bottom: 3px solid var(--primary);
             margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,0 L100,0 L100,100 Z" fill="rgba(231, 76, 60, 0.1)"/></svg>');
+            background-size: cover;
+        }
+        
+        .header-content {
+            position: relative;
+            z-index: 1;
         }
         
         h1 {
-            font-size: 2.5rem;
+            font-size: 3.5rem;
             margin-bottom: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         }
         
         .subtitle {
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             opacity: 0.9;
+            color: var(--accent);
+            font-weight: 300;
+            letter-spacing: 1px;
         }
         
         .main-content {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
             gap: 30px;
         }
         
-        @media (max-width: 768px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
+        .card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            margin-bottom: 25px;
+            border: 1px solid #333;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
         
-        .card {
-            background: white;
-            border-radius: 10px;
-            padding: 25px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
         }
         
         .card h2 {
-            color: var(--dark);
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid var(--light);
+            color: var(--accent);
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #333;
             display: flex;
             align-items: center;
             gap: 10px;
+            font-size: 1.8rem;
         }
         
         .time-slots {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
             margin-top: 20px;
         }
         
         .time-slot {
-            background: var(--light);
+            background: linear-gradient(135deg, #2a2a2a, #1f1f1f);
             border-radius: 8px;
-            padding: 15px;
+            padding: 20px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            border: 2px solid transparent;
+            border: 2px solid #333;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .time-slot::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
         }
         
         .time-slot:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transform: translateY(-5px);
+            border-color: var(--primary);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.2);
+        }
+        
+        .time-slot:hover::before {
+            transform: scaleX(1);
         }
         
         .time-slot.selected {
-            background: var(--primary);
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            border-color: var(--accent);
             color: white;
-            border-color: var(--dark);
+        }
+        
+        .time-slot.selected::before {
+            transform: scaleX(1);
+            background: var(--accent);
         }
         
         .time-slot.full {
-            background: var(--gray);
-            color: white;
+            background: #2a2a2a;
+            color: var(--gray);
             cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .time-slot.full::before {
+            background: var(--gray);
         }
         
         .time-slot.soon {
-            background: #fff3cd;
-            border-color: var(--warning);
+            border-color: var(--accent);
+        }
+        
+        .time-slot.soon::before {
+            background: var(--accent);
+            transform: scaleX(1);
         }
         
         .time-slot h3 {
-            font-size: 1.1rem;
-            margin-bottom: 5px;
+            font-size: 1.3rem;
+            margin-bottom: 8px;
+            font-weight: 600;
         }
         
         .time-slot .count {
@@ -135,84 +197,60 @@
         }
         
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
         
         label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             font-weight: 600;
-            color: var(--dark);
+            color: var(--light);
+            font-size: 1.1rem;
         }
         
         input, select {
             width: 100%;
-            padding: 12px 15px;
-            border: 1px solid #ddd;
+            padding: 15px;
+            background: #2a2a2a;
+            border: 1px solid #444;
             border-radius: 5px;
             font-size: 1rem;
-            transition: border 0.3s;
+            transition: all 0.3s;
+            color: var(--light);
         }
         
         input:focus, select:focus {
             border-color: var(--primary);
             outline: none;
+            box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2);
         }
         
         button {
-            background: var(--secondary);
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
             color: white;
             border: none;
-            padding: 12px 20px;
+            padding: 15px 25px;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 1rem;
+            font-size: 1.1rem;
             font-weight: 600;
-            transition: background 0.3s;
+            transition: all 0.3s;
             width: 100%;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         
         button:hover {
-            background: #27ae60;
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
         }
         
         button:disabled {
-            background: var(--gray);
+            background: #444;
             cursor: not-allowed;
-        }
-        
-        .reservations-list {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        
-        .reservation-item {
-            background: var(--light);
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .reservation-info h4 {
-            margin-bottom: 5px;
-        }
-        
-        .reservation-info p {
-            font-size: 0.9rem;
-            color: var(--gray);
-        }
-        
-        .delete-btn {
-            background: var(--danger);
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 0.8rem;
+            transform: none;
+            box-shadow: none;
         }
         
         .alert {
@@ -220,84 +258,99 @@
             border-radius: 5px;
             margin-bottom: 20px;
             display: none;
+            border-left: 4px solid;
         }
         
         .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            background: rgba(46, 204, 113, 0.1);
+            color: #2ecc71;
+            border-left-color: #2ecc71;
         }
         
         .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+            border-left-color: #e74c3c;
         }
         
         footer {
             text-align: center;
-            margin-top: 40px;
-            padding: 20px;
+            margin-top: 50px;
+            padding: 30px;
             color: var(--gray);
             font-size: 0.9rem;
+            border-top: 1px solid #333;
         }
         
         .instructions {
-            background: #fff9e6;
-            border-left: 4px solid #ffcc00;
-            padding: 15px;
-            margin-bottom: 20px;
+            background: rgba(241, 196, 15, 0.1);
+            border-left: 4px solid var(--accent);
+            padding: 20px;
+            margin-bottom: 30px;
             border-radius: 0 5px 5px 0;
         }
         
         .loading {
             text-align: center;
-            padding: 20px;
+            padding: 30px;
             color: var(--gray);
         }
         
         .capacity-meter {
             height: 20px;
-            background: #f0f0f0;
+            background: #2a2a2a;
             border-radius: 10px;
             margin: 10px 0;
             overflow: hidden;
+            border: 1px solid #444;
         }
         
         .capacity-fill {
             height: 100%;
-            background: var(--secondary);
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
             border-radius: 10px;
             transition: width 0.5s;
         }
         
         .admin-panel {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
+            background: #1a1a1a;
+            border: 1px solid #333;
             border-radius: 5px;
-            padding: 15px;
+            padding: 20px;
             margin-top: 20px;
         }
         
         .tab-buttons {
             display: flex;
             margin-bottom: 20px;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #333;
+            background: #1a1a1a;
+            border-radius: 5px 5px 0 0;
+            overflow: hidden;
         }
         
         .tab-button {
-            padding: 10px 20px;
+            padding: 15px 25px;
             background: none;
             border: none;
             cursor: pointer;
-            color: var(--dark);
+            color: var(--gray);
             font-weight: 600;
             border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            flex: 1;
+            text-align: center;
+        }
+        
+        .tab-button:hover {
+            background: #2a2a2a;
+            color: var(--light);
         }
         
         .tab-button.active {
             border-bottom-color: var(--primary);
             color: var(--primary);
+            background: #2a2a2a;
         }
         
         .tab-content {
@@ -308,162 +361,202 @@
             display: block;
         }
         
-        .connection-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-size: 0.9rem;
-            margin-bottom: 15px;
-        }
-        
-        .connection-status.connected {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .connection-status.disconnected {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        
-        .debug-info {
-            background: #e9ecef;
-            padding: 10px;
+        .password-prompt {
+            background: #1a1a1a;
+            border: 1px solid #333;
             border-radius: 5px;
-            font-family: monospace;
+            padding: 30px;
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .password-prompt input {
+            margin: 15px 0;
+            text-align: center;
+            font-size: 1.1rem;
+            letter-spacing: 2px;
+        }
+        
+        .reservation-item {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .reservation-info h4 {
+            margin-bottom: 5px;
+            color: var(--accent);
+        }
+        
+        .reservation-info p {
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+        
+        .delete-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 3px;
+            cursor: pointer;
             font-size: 0.8rem;
-            margin-top: 10px;
+            transition: background 0.3s;
+        }
+        
+        .delete-btn:hover {
+            background: var(--secondary);
+        }
+        
+        .admin-only {
             display: none;
+        }
+        
+        .admin-active .admin-only {
+            display: block;
+        }
+        
+        .logo {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: var(--accent);
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            .time-slots {
+                grid-template-columns: 1fr;
+            }
+            
+            .tab-buttons {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
 <body>
     <header>
-        <div class="container">
-            <h1><i class="fas fa-dumbbell"></i> Fitness Center</h1>
-            <p class="subtitle">Class Reservation System</p>
+        <div class="container header-content">
+            <div class="logo">
+                <i class="fas fa-dumbbell"></i>
+            </div>
+            <h1>SATORI STRENGTH</h1>
+            <p class="subtitle">Premium Gym Reservation System</p>
         </div>
     </header>
     
     <div class="container">
         <div class="instructions">
-            <h3><i class="fas fa-info-circle"></i> How to Use</h3>
-            <p>Select a time slot, fill in your details, and click "Make Reservation". Personalized programs automatically book 2 hours. Maximum 8 people per time slot.</p>
-            <button id="toggleDebug" style="margin-top: 10px; width: auto; padding: 5px 10px; background: var(--primary);">
-                <i class="fas fa-bug"></i> Show Debug Info
-            </button>
-            <div id="debugInfo" class="debug-info"></div>
+            <h3><i class="fas fa-info-circle"></i> How to Reserve Your Session</h3>
+            <p>Select an available time slot, fill in your details, and click "Reserve Now". Each session is 1 hour with a maximum of 8 people per time slot.</p>
         </div>
         
         <div class="alert alert-success" id="successAlert">
-            Reservation successfully made!
+            <i class="fas fa-check-circle"></i> Reservation successfully made!
         </div>
         
         <div class="alert alert-error" id="errorAlert">
-            Error making reservation. Please try again.
+            <i class="fas fa-exclamation-circle"></i> Error making reservation. Please try again.
         </div>
         
-        <div id="connectionStatus" class="connection-status">
-            <i class="fas fa-sync fa-spin"></i> Checking connection...
-        </div>
-        
-        <div class="tab-buttons">
-            <button class="tab-button active" data-tab="reservation">Make Reservation</button>
-            <button class="tab-button" data-tab="admin">Admin Panel</button>
-        </div>
-        
-        <div class="tab-content active" id="reservation-tab">
-            <div class="main-content">
-                <div class="left-column">
-                    <div class="card">
-                        <h2><i class="far fa-calendar-alt"></i> Available Time Slots</h2>
-                        <div class="time-slots" id="timeSlots">
-                            <div class="loading">Loading time slots...</div>
-                        </div>
-                    </div>
-                    
-                    <div class="card">
-                        <h2><i class="fas fa-clipboard-list"></i> Make a Reservation</h2>
-                        <form id="reservationForm">
-                            <div class="form-group">
-                                <label for="name">Full Name</label>
-                                <input type="text" id="name" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="email">Email</label>
-                                <input type="email" id="email" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="programType">Program Type</label>
-                                <select id="programType">
-                                    <option value="regular">Regular Class (1 hour)</option>
-                                    <option value="personalized">Personalized Program (2 hours)</option>
-                                </select>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="selectedTime">Selected Time Slot</label>
-                                <input type="text" id="selectedTime" readonly placeholder="Select a time slot above">
-                            </div>
-                            
-                            <button type="submit" id="reserveBtn">Make Reservation</button>
-                        </form>
+        <div class="main-content">
+            <div class="card">
+                <h2><i class="far fa-calendar-alt"></i> Available Time Slots</h2>
+                <div class="time-slots" id="timeSlots">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i> Loading available time slots...
                     </div>
                 </div>
-                
-                <div class="right-column">
-                    <div class="card">
-                        <h2><i class="fas fa-history"></i> Today's Reservations</h2>
-                        <div class="reservations-list" id="reservationsList">
-                            <div class="loading">Loading reservations...</div>
-                        </div>
+            </div>
+            
+            <div class="card">
+                <h2><i class="fas fa-clipboard-list"></i> Make a Reservation</h2>
+                <form id="reservationForm">
+                    <div class="form-group">
+                        <label for="name">Full Name</label>
+                        <input type="text" id="name" required placeholder="Enter your full name">
                     </div>
                     
-                    <div class="card">
-                        <h2><i class="fas fa-chart-bar"></i> Capacity Overview</h2>
-                        <div id="capacityChart">
-                            <!-- Capacity chart will be generated by JavaScript -->
-                        </div>
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" required placeholder="Enter your email">
                     </div>
+                    
+                    <div class="form-group">
+                        <label for="selectedTime">Selected Time Slot</label>
+                        <input type="text" id="selectedTime" readonly placeholder="Select a time slot above">
+                    </div>
+                    
+                    <button type="submit" id="reserveBtn">
+                        <i class="fas fa-calendar-plus"></i> Reserve Now
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card admin-only" id="adminSection">
+            <h2><i class="fas fa-user-shield"></i> Admin Panel</h2>
+            <p>Manage reservations and view system data.</p>
+            
+            <div class="tab-buttons">
+                <button class="tab-button active" data-tab="reservations">All Reservations</button>
+                <button class="tab-button" data-tab="export">Export Data</button>
+            </div>
+            
+            <div class="tab-content active" id="reservations-tab">
+                <div class="admin-panel">
+                    <h3>Reservation Management</h3>
+                    <div id="allReservations">
+                        <div class="loading">Loading reservation data...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="export-tab">
+                <div class="admin-panel">
+                    <h3>Data Export</h3>
+                    <p>Export all reservation data to CSV format for analysis.</p>
+                    <button id="exportData" style="width: auto; margin-top: 20px;">
+                        <i class="fas fa-download"></i> Export to CSV
+                    </button>
+                    <button id="clearAllData" style="width: auto; margin-top: 10px; background: #e74c3c;">
+                        <i class="fas fa-trash"></i> Clear All Data
+                    </button>
                 </div>
             </div>
         </div>
         
-        <div class="tab-content" id="admin-tab">
-            <div class="card">
-                <h2><i class="fas fa-cog"></i> Admin Panel</h2>
-                <p>Use this panel to manage reservations and view all data.</p>
-                
-                <div class="admin-panel">
-                    <h3>All Reservations</h3>
-                    <div id="allReservations">
-                        <div class="loading">Loading all reservations...</div>
-                    </div>
-                    
-                    <button id="exportData" style="width: auto; margin-top: 20px;">
-                        <i class="fas fa-download"></i> Export Data to CSV
-                    </button>
-                    <button id="clearAllData" style="width: auto; margin-top: 10px; background: var(--danger);">
-                        <i class="fas fa-trash"></i> Clear All Data
-                    </button>
-                </div>
+        <div class="card" id="adminAccess">
+            <h2><i class="fas fa-lock"></i> Admin Access</h2>
+            <div class="password-prompt">
+                <p>Enter admin password to access management panel:</p>
+                <input type="password" id="adminPassword" placeholder="Enter password">
+                <button id="loginBtn">Access Admin Panel</button>
+                <p id="loginError" style="color: #e74c3c; margin-top: 10px; display: none;">
+                    <i class="fas fa-exclamation-triangle"></i> Incorrect password
+                </p>
             </div>
         </div>
     </div>
     
     <footer>
         <div class="container">
-            <p>Gym Class Reservation System &copy; 2023 | Maximum Capacity: 8 people per time slot</p>
-            <p>Powered by Google Sheets API</p>
+            <p>SATORI STRENGTH &copy; 2023 | Premium Fitness Experience</p>
+            <p>Maximum Capacity: 8 people per time slot</p>
         </div>
     </footer>
 
     <script>
-        // Configuration - Using your Google Apps Script URL
+        // Configuration
+        const ADMIN_PASSWORD = "satori2953";
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzamSRbmBnJRUkYfLERMbbpmkyV2ljOGm8g1FyEZ3QgJARa6Af6_5gQ1mLOiTSUA-l8/exec';
         
         // Time slots data
@@ -478,122 +571,65 @@
 
         // DOM elements
         const timeSlotsContainer = document.getElementById('timeSlots');
-        const reservationsList = document.getElementById('reservationsList');
         const reservationForm = document.getElementById('reservationForm');
         const selectedTimeInput = document.getElementById('selectedTime');
-        const programTypeSelect = document.getElementById('programType');
         const successAlert = document.getElementById('successAlert');
         const errorAlert = document.getElementById('errorAlert');
-        const capacityChart = document.getElementById('capacityChart');
         const allReservations = document.getElementById('allReservations');
+        const adminSection = document.getElementById('adminSection');
+        const adminAccess = document.getElementById('adminAccess');
+        const adminPassword = document.getElementById('adminPassword');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginError = document.getElementById('loginError');
         const tabButtons = document.querySelectorAll('.tab-button');
         const tabContents = document.querySelectorAll('.tab-content');
-        const connectionStatus = document.getElementById('connectionStatus');
-        const debugInfo = document.getElementById('debugInfo');
-        const toggleDebug = document.getElementById('toggleDebug');
 
         let selectedTimeSlot = null;
         let allReservationsData = [];
-        let isConnected = false;
+        let isAdmin = false;
 
         // Initialize the app
-        async function initializeApp() {
-            // Test connection first
-            await testConnection();
-            
-            if (isConnected) {
-                await loadTimeSlots();
-                await loadReservations();
-                await loadAllReservations();
-            } else {
-                // If not connected, try to load from localStorage
-                await loadTimeSlots();
-                await loadReservations();
-                await loadAllReservations();
-            }
-            
+        function initializeApp() {
+            checkAdminStatus();
+            loadTimeSlots();
             setupEventListeners();
         }
 
-        // Test connection to Google Apps Script
-        async function testConnection() {
-            try {
-                connectionStatus.innerHTML = '<i class="fas fa-sync fa-spin"></i> Testing connection...';
-                
-                // Add a timestamp to avoid caching
-                const testUrl = SCRIPT_URL + '?test=' + Date.now();
-                const response = await fetch(testUrl, {
-                    method: 'GET',
-                    mode: 'no-cors' // This is important for Google Apps Script
-                });
-                
-                // With no-cors mode, we can't read the response but we can check if the request was made
-                isConnected = true;
-                connectionStatus.innerHTML = '<i class="fas fa-check-circle"></i> Connected to database';
-                connectionStatus.className = 'connection-status connected';
-                addDebugInfo('Connection test: Success (no-cors mode)');
-            } catch (error) {
-                console.error('Connection test failed:', error);
-                isConnected = false;
-                connectionStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Offline mode - using local storage';
-                connectionStatus.className = 'connection-status disconnected';
-                addDebugInfo('Connection test failed: ' + error.message);
-                
-                // Initialize local storage as fallback
-                initializeLocalStorage();
+        // Check if user is already logged in as admin
+        function checkAdminStatus() {
+            if (sessionStorage.getItem('satoriAdmin') === 'true') {
+                isAdmin = true;
+                adminSection.style.display = 'block';
+                adminAccess.style.display = 'none';
+                loadAllReservations();
             }
-        }
-
-        // Initialize local storage as fallback
-        function initializeLocalStorage() {
-            if (!localStorage.getItem('gymReservations')) {
-                localStorage.setItem('gymReservations', JSON.stringify([]));
-                addDebugInfo('Local storage initialized');
-            }
-        }
-
-        // Add debug information
-        function addDebugInfo(message) {
-            const timestamp = new Date().toLocaleTimeString();
-            debugInfo.innerHTML += `[${timestamp}] ${message}<br>`;
-            debugInfo.scrollTop = debugInfo.scrollHeight;
         }
 
         // Load time slots
-        async function loadTimeSlots() {
-            try {
-                addDebugInfo('Loading time slots...');
-                const reservations = await getReservations();
-                timeSlotsContainer.innerHTML = '';
+        function loadTimeSlots() {
+            const reservations = getReservations();
+            timeSlotsContainer.innerHTML = '';
+            
+            timeSlots.forEach(slot => {
+                const reservationsForSlot = reservations.filter(r => r.timeSlotId == slot.id);
+                const currentCount = reservationsForSlot.length;
+                const isFull = currentCount >= slot.maxCapacity;
+                const isSoon = isTimeSlotSoon(slot);
                 
-                timeSlots.forEach(slot => {
-                    const reservationsForSlot = reservations.filter(r => r.timeSlotId == slot.id);
-                    const currentCount = reservationsForSlot.length;
-                    const isFull = currentCount >= slot.maxCapacity;
-                    const isSoon = isTimeSlotSoon(slot);
-                    
-                    const timeSlotElement = document.createElement('div');
-                    timeSlotElement.className = `time-slot ${isFull ? 'full' : ''} ${isSoon ? 'soon' : ''} ${selectedTimeSlot === slot.id ? 'selected' : ''}`;
-                    timeSlotElement.innerHTML = `
-                        <h3>${slot.start} - ${slot.end}</h3>
-                        <div class="count">${currentCount}/${slot.maxCapacity} reserved</div>
-                        ${isSoon ? '<div><small>Starting soon!</small></div>' : ''}
-                    `;
-                    
-                    if (!isFull) {
-                        timeSlotElement.addEventListener('click', () => selectTimeSlot(slot.id));
-                    }
-                    
-                    timeSlotsContainer.appendChild(timeSlotElement);
-                });
+                const timeSlotElement = document.createElement('div');
+                timeSlotElement.className = `time-slot ${isFull ? 'full' : ''} ${isSoon ? 'soon' : ''} ${selectedTimeSlot === slot.id ? 'selected' : ''}`;
+                timeSlotElement.innerHTML = `
+                    <h3>${slot.start} - ${slot.end}</h3>
+                    <div class="count">${currentCount}/${slot.maxCapacity} reserved</div>
+                    ${isSoon ? '<div><small><i class="fas fa-clock"></i> Starting soon!</small></div>' : ''}
+                `;
                 
-                updateCapacityChart(reservations);
-                addDebugInfo('Time slots loaded successfully');
-            } catch (error) {
-                console.error('Error loading time slots:', error);
-                timeSlotsContainer.innerHTML = '<div class="alert alert-error">Error loading time slots. Please try again later.</div>';
-                addDebugInfo('Error loading time slots: ' + error.message);
-            }
+                if (!isFull) {
+                    timeSlotElement.addEventListener('click', () => selectTimeSlot(slot.id));
+                }
+                
+                timeSlotsContainer.appendChild(timeSlotElement);
+            });
         }
 
         // Check if a time slot is starting soon (within the next hour)
@@ -614,166 +650,70 @@
         function selectTimeSlot(timeSlotId) {
             selectedTimeSlot = timeSlotId;
             const slot = timeSlots.find(s => s.id === timeSlotId);
-            
-            if (programTypeSelect.value === 'personalized') {
-                // For personalized programs, book 2 hours
-                const nextSlot = timeSlots.find(s => s.start === slot.end);
-                if (nextSlot) {
-                    selectedTimeInput.value = `${slot.start} - ${nextSlot.end} (2 hours)`;
-                } else {
-                    selectedTimeInput.value = `${slot.start} - ${slot.end}`;
-                    alert('Personalized programs require 2 consecutive hours. This is the last slot of the day.');
-                }
-            } else {
-                selectedTimeInput.value = `${slot.start} - ${slot.end}`;
-            }
-            
+            selectedTimeInput.value = `${slot.start} - ${slot.end}`;
             loadTimeSlots();
-            addDebugInfo(`Selected time slot: ${slot.start} - ${slot.end}`);
         }
 
-        // Load reservations for today
-        async function loadReservations() {
-            try {
-                addDebugInfo('Loading reservations...');
-                const reservations = await getReservations();
-                reservationsList.innerHTML = '';
-                
-                if (reservations.length === 0) {
-                    reservationsList.innerHTML = '<p>No reservations for today.</p>';
-                    addDebugInfo('No reservations found for today');
-                    return;
+        // Load all reservations for admin panel
+        function loadAllReservations() {
+            if (!isAdmin) return;
+            
+            const reservations = getAllReservations();
+            allReservationsData = reservations;
+            allReservations.innerHTML = '';
+            
+            if (reservations.length === 0) {
+                allReservations.innerHTML = '<p>No reservations found.</p>';
+                return;
+            }
+            
+            // Group by date
+            const groupedByDate = {};
+            reservations.forEach(reservation => {
+                const date = reservation.date || 'Unknown Date';
+                if (!groupedByDate[date]) {
+                    groupedByDate[date] = [];
                 }
+                groupedByDate[date].push(reservation);
+            });
+            
+            // Display by date
+            for (const [date, dateReservations] of Object.entries(groupedByDate)) {
+                const dateHeader = document.createElement('h4');
+                dateHeader.textContent = `Reservations for ${date}`;
+                dateHeader.style.marginTop = '20px';
+                dateHeader.style.marginBottom = '10px';
+                dateHeader.style.color = '#f1c40f';
+                allReservations.appendChild(dateHeader);
                 
-                reservations.forEach(reservation => {
+                dateReservations.forEach(reservation => {
                     const slot = timeSlots.find(s => s.id == reservation.timeSlotId);
-                    if (!slot) return;
+                    const timeSlotText = slot ? `${slot.start} - ${slot.end}` : 'Unknown Time';
                     
                     const reservationElement = document.createElement('div');
                     reservationElement.className = 'reservation-item';
                     reservationElement.innerHTML = `
                         <div class="reservation-info">
                             <h4>${reservation.name}</h4>
-                            <p>${slot.start} - ${slot.end} | ${reservation.programType === 'personalized' ? 'Personalized (2h)' : 'Regular'}</p>
-                            <small>${reservation.email}</small>
+                            <p>${timeSlotText} | ${reservation.email}</p>
+                            <small>Booked on: ${reservation.bookingDate || 'Unknown'}</small>
                         </div>
                         <button class="delete-btn" data-id="${reservation.id}">Delete</button>
                     `;
-                    reservationsList.appendChild(reservationElement);
+                    allReservations.appendChild(reservationElement);
                 });
-                
-                // Add event listeners to delete buttons
-                document.querySelectorAll('.delete-btn').forEach(button => {
-                    button.addEventListener('click', async (e) => {
-                        const id = e.target.getAttribute('data-id');
-                        if (confirm('Are you sure you want to delete this reservation?')) {
-                            await deleteReservation(id);
-                            loadReservations();
-                            loadTimeSlots();
-                            loadAllReservations();
-                        }
-                    });
-                });
-                
-                addDebugInfo(`Loaded ${reservations.length} reservations for today`);
-            } catch (error) {
-                console.error('Error loading reservations:', error);
-                reservationsList.innerHTML = '<div class="alert alert-error">Error loading reservations.</div>';
-                addDebugInfo('Error loading reservations: ' + error.message);
             }
-        }
-
-        // Load all reservations for admin panel
-        async function loadAllReservations() {
-            try {
-                addDebugInfo('Loading all reservations...');
-                const reservations = await getAllReservations();
-                allReservationsData = reservations;
-                allReservations.innerHTML = '';
-                
-                if (reservations.length === 0) {
-                    allReservations.innerHTML = '<p>No reservations found.</p>';
-                    addDebugInfo('No reservations found in database');
-                    return;
-                }
-                
-                // Group by date
-                const groupedByDate = {};
-                reservations.forEach(reservation => {
-                    const date = reservation.date || 'Unknown Date';
-                    if (!groupedByDate[date]) {
-                        groupedByDate[date] = [];
-                    }
-                    groupedByDate[date].push(reservation);
-                });
-                
-                // Display by date
-                for (const [date, dateReservations] of Object.entries(groupedByDate)) {
-                    const dateHeader = document.createElement('h4');
-                    dateHeader.textContent = `Reservations for ${date}`;
-                    dateHeader.style.marginTop = '20px';
-                    dateHeader.style.marginBottom = '10px';
-                    allReservations.appendChild(dateHeader);
-                    
-                    dateReservations.forEach(reservation => {
-                        const slot = timeSlots.find(s => s.id == reservation.timeSlotId);
-                        const timeSlotText = slot ? `${slot.start} - ${slot.end}` : 'Unknown Time';
-                        
-                        const reservationElement = document.createElement('div');
-                        reservationElement.className = 'reservation-item';
-                        reservationElement.innerHTML = `
-                            <div class="reservation-info">
-                                <h4>${reservation.name}</h4>
-                                <p>${timeSlotText} | ${reservation.programType === 'personalized' ? 'Personalized (2h)' : 'Regular'}</p>
-                                <small>${reservation.email} | Booked on: ${reservation.bookingDate || 'Unknown'}</small>
-                            </div>
-                            <button class="delete-btn" data-id="${reservation.id}">Delete</button>
-                        `;
-                        allReservations.appendChild(reservationElement);
-                    });
-                }
-                
-                // Add event listeners to delete buttons in admin panel
-                document.querySelectorAll('#allReservations .delete-btn').forEach(button => {
-                    button.addEventListener('click', async (e) => {
-                        const id = e.target.getAttribute('data-id');
-                        if (confirm('Are you sure you want to delete this reservation?')) {
-                            await deleteReservation(id);
-                            loadReservations();
-                            loadTimeSlots();
-                            loadAllReservations();
-                        }
-                    });
-                });
-                
-                addDebugInfo(`Loaded ${reservations.length} total reservations`);
-            } catch (error) {
-                console.error('Error loading all reservations:', error);
-                allReservations.innerHTML = '<div class="alert alert-error">Error loading reservations.</div>';
-                addDebugInfo('Error loading all reservations: ' + error.message);
-            }
-        }
-
-        // Update capacity chart
-        function updateCapacityChart(reservations) {
-            capacityChart.innerHTML = '';
             
-            timeSlots.forEach(slot => {
-                const reservationsForSlot = reservations.filter(r => r.timeSlotId == slot.id);
-                const currentCount = reservationsForSlot.length;
-                const percentage = (currentCount / slot.maxCapacity) * 100;
-                
-                const slotElement = document.createElement('div');
-                slotElement.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                        <span>${slot.start} - ${slot.end}</span>
-                        <span>${currentCount}/${slot.maxCapacity}</span>
-                    </div>
-                    <div class="capacity-meter">
-                        <div class="capacity-fill" style="width: ${percentage}%"></div>
-                    </div>
-                `;
-                capacityChart.appendChild(slotElement);
+            // Add event listeners to delete buttons in admin panel
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const id = e.target.getAttribute('data-id');
+                    if (confirm('Are you sure you want to delete this reservation?')) {
+                        deleteReservation(id);
+                        loadAllReservations();
+                        loadTimeSlots();
+                    }
+                });
             });
         }
 
@@ -781,13 +721,28 @@
         function setupEventListeners() {
             reservationForm.addEventListener('submit', handleReservationSubmit);
             
-            programTypeSelect.addEventListener('change', () => {
-                if (selectedTimeSlot) {
-                    selectTimeSlot(selectedTimeSlot); // Re-run to update the time display
+            // Admin login
+            loginBtn.addEventListener('click', () => {
+                if (adminPassword.value === ADMIN_PASSWORD) {
+                    isAdmin = true;
+                    sessionStorage.setItem('satoriAdmin', 'true');
+                    adminSection.style.display = 'block';
+                    adminAccess.style.display = 'none';
+                    loadAllReservations();
+                } else {
+                    loginError.style.display = 'block';
+                    adminPassword.value = '';
                 }
             });
             
-            // Tab switching
+            // Allow Enter key for admin login
+            adminPassword.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    loginBtn.click();
+                }
+            });
+            
+            // Tab switching for admin panel
             tabButtons.forEach(button => {
                 button.addEventListener('click', () => {
                     const tabId = button.getAttribute('data-tab');
@@ -799,11 +754,6 @@
                     // Update active tab content
                     tabContents.forEach(content => content.classList.remove('active'));
                     document.getElementById(`${tabId}-tab`).classList.add('active');
-                    
-                    // Reload data if switching to admin tab
-                    if (tabId === 'admin') {
-                        loadAllReservations();
-                    }
                 });
             });
             
@@ -816,18 +766,10 @@
                     clearAllData();
                 }
             });
-            
-            // Toggle debug info
-            toggleDebug.addEventListener('click', () => {
-                debugInfo.style.display = debugInfo.style.display === 'block' ? 'none' : 'block';
-                toggleDebug.innerHTML = debugInfo.style.display === 'block' ? 
-                    '<i class="fas fa-bug"></i> Hide Debug Info' : 
-                    '<i class="fas fa-bug"></i> Show Debug Info';
-            });
         }
 
         // Handle reservation form submission
-        async function handleReservationSubmit(e) {
+        function handleReservationSubmit(e) {
             e.preventDefault();
             
             if (!selectedTimeSlot) {
@@ -837,11 +779,10 @@
             
             const name = document.getElementById('name').value;
             const email = document.getElementById('email').value;
-            const programType = programTypeSelect.value;
             
             // Check if the selected time slot is still available
             const slot = timeSlots.find(s => s.id === selectedTimeSlot);
-            const reservations = await getReservations();
+            const reservations = getReservations();
             const reservationsForSlot = reservations.filter(r => r.timeSlotId == selectedTimeSlot);
             
             if (reservationsForSlot.length >= slot.maxCapacity) {
@@ -850,57 +791,37 @@
                 return;
             }
             
-            // For personalized programs, check if the next slot is also available
-            if (programType === 'personalized') {
-                const nextSlot = timeSlots.find(s => s.start === slot.end);
-                if (nextSlot) {
-                    const nextSlotReservations = reservations.filter(r => r.timeSlotId == nextSlot.id);
-                    if (nextSlotReservations.length >= nextSlot.maxCapacity) {
-                        showAlert('The consecutive time slot needed for personalized programs is full. Please select another time.', 'error');
-                        return;
-                    }
-                } else {
-                    showAlert('Personalized programs require 2 consecutive hours. Please select a different time slot.', 'error');
-                    return;
-                }
-            }
-            
             // Create reservation
             const reservation = {
                 name,
                 email,
-                programType,
                 timeSlotId: selectedTimeSlot,
                 date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
                 bookingDate: new Date().toLocaleString()
             };
             
-            try {
-                // Save reservation
-                await saveReservation(reservation);
-                
-                // Show success message
-                showAlert('Reservation successfully made!', 'success');
-                
-                // Reset form
-                reservationForm.reset();
-                selectedTimeSlot = null;
-                selectedTimeInput.value = '';
-                
-                // Reload data
-                loadTimeSlots();
-                loadReservations();
+            // Save reservation
+            saveReservation(reservation);
+            
+            // Show success message
+            showAlert('Reservation successfully made!', 'success');
+            
+            // Reset form
+            reservationForm.reset();
+            selectedTimeSlot = null;
+            selectedTimeInput.value = '';
+            
+            // Reload data
+            loadTimeSlots();
+            if (isAdmin) {
                 loadAllReservations();
-            } catch (error) {
-                console.error('Error saving reservation:', error);
-                showAlert('Error making reservation. Please try again.', 'error');
             }
         }
 
         // Show alert message
         function showAlert(message, type) {
             const alertElement = type === 'success' ? successAlert : errorAlert;
-            alertElement.textContent = message;
+            alertElement.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : 'exclamation'}-circle"></i> ${message}`;
             alertElement.style.display = 'block';
             
             setTimeout(() => {
@@ -915,7 +836,7 @@
                 return;
             }
             
-            const headers = ['Name', 'Email', 'Program Type', 'Time Slot', 'Date', 'Booking Date'];
+            const headers = ['Name', 'Email', 'Time Slot', 'Date', 'Booking Date'];
             const csvContent = [
                 headers.join(','),
                 ...allReservationsData.map(reservation => {
@@ -924,7 +845,6 @@
                     return [
                         `"${reservation.name}"`,
                         `"${reservation.email}"`,
-                        `"${reservation.programType}"`,
                         `"${timeSlot}"`,
                         `"${reservation.date}"`,
                         `"${reservation.bookingDate}"`
@@ -936,136 +856,54 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `gym-reservations-${new Date().toISOString().split('T')[0]}.csv`;
+            a.download = `satori-reservations-${new Date().toISOString().split('T')[0]}.csv`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            
-            addDebugInfo('Data exported to CSV');
         }
 
         // Clear all data
         function clearAllData() {
             localStorage.setItem('gymReservations', JSON.stringify([]));
             allReservationsData = [];
-            loadReservations();
-            loadTimeSlots();
             loadAllReservations();
-            addDebugInfo('All data cleared');
+            loadTimeSlots();
             showAlert('All data has been cleared.', 'success');
         }
 
-        // API functions - Connect to Google Apps Script
-        async function getReservations() {
-            if (!isConnected) {
-                // Fallback to localStorage
-                const today = new Date().toISOString().split('T')[0];
-                const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
-                return reservations.filter(r => r.date === today);
-            }
-            
-            try {
-                // Try to fetch from Google Apps Script
-                const response = await fetch(SCRIPT_URL);
-                if (!response.ok) throw new Error('Network response was not ok');
-                
-                const data = await response.json();
-                const today = new Date().toISOString().split('T')[0];
-                return data.filter(r => r.date === today);
-            } catch (error) {
-                console.error('Error fetching reservations:', error);
-                addDebugInfo('Error fetching from API: ' + error.message);
-                // Fallback to localStorage
-                const today = new Date().toISOString().split('T')[0];
-                const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
-                return reservations.filter(r => r.date === today);
+        // Data management functions (using localStorage as database)
+        function initializeLocalStorage() {
+            if (!localStorage.getItem('gymReservations')) {
+                localStorage.setItem('gymReservations', JSON.stringify([]));
             }
         }
-        
-        async function getAllReservations() {
-            if (!isConnected) {
-                // Fallback to localStorage
-                return JSON.parse(localStorage.getItem('gymReservations') || '[]');
-            }
-            
-            try {
-                const response = await fetch(SCRIPT_URL);
-                if (!response.ok) throw new Error('Network response was not ok');
-                
-                return await response.json();
-            } catch (error) {
-                console.error('Error fetching all reservations:', error);
-                addDebugInfo('Error fetching all from API: ' + error.message);
-                // Fallback to localStorage
-                return JSON.parse(localStorage.getItem('gymReservations') || '[]');
-            }
+
+        function getReservations() {
+            initializeLocalStorage();
+            const today = new Date().toISOString().split('T')[0];
+            const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
+            return reservations.filter(r => r.date === today);
         }
         
-        async function saveReservation(reservation) {
-            // Always save to localStorage first for immediate feedback
+        function getAllReservations() {
+            initializeLocalStorage();
+            return JSON.parse(localStorage.getItem('gymReservations') || '[]');
+        }
+        
+        function saveReservation(reservation) {
+            initializeLocalStorage();
             const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
             reservation.id = Date.now();
             reservations.push(reservation);
             localStorage.setItem('gymReservations', JSON.stringify(reservations));
-            
-            if (!isConnected) {
-                addDebugInfo('Reservation saved to local storage (offline mode)');
-                return { success: true, id: reservation.id };
-            }
-            
-            try {
-                // Try to save to Google Apps Script
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(reservation)
-                });
-                
-                if (!response.ok) throw new Error('Network response was not ok');
-                
-                addDebugInfo('Reservation saved to Google Sheets');
-                return await response.json();
-            } catch (error) {
-                console.error('Error saving reservation to API:', error);
-                addDebugInfo('Error saving to API: ' + error.message);
-                // We already saved to localStorage, so just return success
-                return { success: true, id: reservation.id };
-            }
         }
         
-        async function deleteReservation(id) {
-            // Always delete from localStorage first
+        function deleteReservation(id) {
+            initializeLocalStorage();
             const reservations = JSON.parse(localStorage.getItem('gymReservations') || '[]');
             const updatedReservations = reservations.filter(r => r.id != id);
             localStorage.setItem('gymReservations', JSON.stringify(updatedReservations));
-            
-            if (!isConnected) {
-                addDebugInfo('Reservation deleted from local storage (offline mode)');
-                return { success: true };
-            }
-            
-            try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ action: 'delete', id: id })
-                });
-                
-                if (!response.ok) throw new Error('Network response was not ok');
-                
-                addDebugInfo('Reservation deleted from Google Sheets');
-                return await response.json();
-            } catch (error) {
-                console.error('Error deleting reservation from API:', error);
-                addDebugInfo('Error deleting from API: ' + error.message);
-                // We already deleted from localStorage, so just return success
-                return { success: true };
-            }
         }
 
         // Initialize the app when DOM is loaded
