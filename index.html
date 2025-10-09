@@ -1,160 +1,265 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Satori Strength Reservations</title>
-  <script type="module">
-    // ✅ Import Firebase SDKs
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, query, where, Timestamp } 
-      from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+<script type="module">
+  // ✅ Import Firebase SDKs
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, where, Timestamp } 
+    from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
-    // ✅ Your Firebase Config
-    const firebaseConfig = {
-      apiKey: "AIzaSyCVZKRIoXIwGkUhdDlZf9Q8BkZU1uqpQ8I",
-      authDomain: "satori-strength.firebaseapp.com",
-      projectId: "satori-strength",
-      storageBucket: "satori-strength.firebasestorage.app",
-      messagingSenderId: "255120260921",
-      appId: "1:255120260921:web:d69ed3858babae24e232e8"
-    };
+  // ✅ Firebase Config (your project details)
+  const firebaseConfig = {
+  apiKey: "AIzaSyCVZKRIoXIwGkUhdDlZf9Q8BkZU1uqpQ8I",
+  authDomain: "satori-strength.firebaseapp.com",
+  projectId: "satori-strength",
+  storageBucket: "satori-strength.firebasestorage.app",
+  messagingSenderId: "255120260921",
+  appId: "1:255120260921:web:d69ed3858babae24e232e8"
+};
 
-    // ✅ Init Firebase
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    // 📅 Today’s date
-    const today = new Date().toISOString().split("T")[0];
+  // ✅ Config
+  const ADMIN_PASSWORD = "satori2953";
 
-    // 🎯 Time slots (you can add/remove here)
-    const timeSlots = ["09:00", "10:00", "11:00", "12:00", "17:00", "18:00", "19:00"];
+  // Time slots
+  const timeSlots = [
+    { id: 1, start: "6:00", end: "8:00", maxCapacity: 8 },
+    { id: 2, start: "9:00", end: "10:00", maxCapacity: 8 },
+    { id: 3, start: "12:30", end: "14:00", maxCapacity: 8 },
+    { id: 4, start: "17:30", end: "18:30", maxCapacity: 8 },
+    { id: 5, start: "18:30", end: "19:30", maxCapacity: 8 },
+    { id: 6, start: "19:30", end: "20:30", maxCapacity: 8 }
+  ];
 
-    // ⚡ Render available slots
-    async function renderSlots() {
-      const container = document.getElementById("slots");
-      container.innerHTML = "";
+  // DOM elements
+  const timeSlotsContainer = document.getElementById('timeSlots');
+  const reservationForm = document.getElementById('reservationForm');
+  const selectedTimeInput = document.getElementById('selectedTime');
+  const successAlert = document.getElementById('successAlert');
+  const errorAlert = document.getElementById('errorAlert');
+  const allReservations = document.getElementById('allReservations');
+  const adminSection = document.getElementById('adminSection');
+  const adminAccess = document.getElementById('adminAccess');
+  const adminPassword = document.getElementById('adminPassword');
+  const loginBtn = document.getElementById('loginBtn');
+  const loginError = document.getElementById('loginError');
+  const tabButtons = document.querySelectorAll('.tab-button');
+  const tabContents = document.querySelectorAll('.tab-content');
 
-      const reservations = await loadReservations(today);
+  let selectedTimeSlot = null;
+  let allReservationsData = [];
+  let isAdmin = false;
 
-      timeSlots.forEach(slot => {
-        const btn = document.createElement("button");
-        btn.textContent = slot;
-        btn.className = "slot-btn";
+  // ✅ Initialize app
+  function initializeAppCustom() {
+    checkAdminStatus();
+    loadTimeSlots();
+    setupEventListeners();
+  }
 
-        // Check if slot already taken
-        const reserved = reservations.find(r => r.timeSlot === slot);
-        if (reserved) {
-          btn.disabled = true;
-          btn.textContent = `${slot} - Reserved`;
-        } else {
-          btn.addEventListener("click", () => openReservationForm(slot));
+  function checkAdminStatus() {
+    if (sessionStorage.getItem('satoriAdmin') === 'true') {
+      isAdmin = true;
+      adminSection.style.display = 'block';
+      adminAccess.style.display = 'none';
+      loadAllReservations();
+    }
+  }
+
+  // ✅ Load time slots from Firestore
+  async function loadTimeSlots() {
+    const reservations = await getReservations();
+    timeSlotsContainer.innerHTML = '';
+    timeSlots.forEach(slot => {
+      const reservationsForSlot = reservations.filter(r => r.timeSlotId == slot.id);
+      const currentCount = reservationsForSlot.length;
+      const isFull = currentCount >= slot.maxCapacity;
+      const isSoon = isTimeSlotSoon(slot);
+
+      const timeSlotElement = document.createElement('div');
+      timeSlotElement.className = `time-slot ${isFull ? 'full' : ''} ${isSoon ? 'soon' : ''} ${selectedTimeSlot === slot.id ? 'selected' : ''}`;
+      timeSlotElement.innerHTML = `
+        <h3>${slot.start} - ${slot.end}</h3>
+        <div class="count">${currentCount}/${slot.maxCapacity} reserved</div>
+        ${isSoon ? '<div><small><i class="fas fa-clock"></i> Starting soon!</small></div>' : ''}
+      `;
+
+      if (!isFull) {
+        timeSlotElement.addEventListener('click', () => selectTimeSlot(slot.id));
+      }
+
+      timeSlotsContainer.appendChild(timeSlotElement);
+    });
+  }
+
+  function isTimeSlotSoon(slot) {
+    const now = new Date();
+    const slotStartTime = new Date();
+    const [startHour, startMinute] = slot.start.split(':').map(Number);
+    slotStartTime.setHours(startHour, startMinute, 0, 0);
+    const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+    return slotStartTime > now && slotStartTime <= oneHourFromNow;
+  }
+
+  function selectTimeSlot(timeSlotId) {
+    selectedTimeSlot = timeSlotId;
+    const slot = timeSlots.find(s => s.id === timeSlotId);
+    selectedTimeInput.value = `${slot.start} - ${slot.end}`;
+    loadTimeSlots();
+  }
+
+  // ✅ Load all reservations (admin panel)
+  async function loadAllReservations() {
+    if (!isAdmin) return;
+    const reservations = await getAllReservations();
+    allReservationsData = reservations;
+    allReservations.innerHTML = '';
+
+    if (reservations.length === 0) {
+      allReservations.innerHTML = '<p>No reservations found.</p>';
+      return;
+    }
+
+    const groupedByDate = {};
+    reservations.forEach(reservation => {
+      const date = reservation.date || 'Unknown Date';
+      if (!groupedByDate[date]) groupedByDate[date] = [];
+      groupedByDate[date].push(reservation);
+    });
+
+    for (const [date, dateReservations] of Object.entries(groupedByDate)) {
+      const dateHeader = document.createElement('h4');
+      dateHeader.textContent = `Reservations for ${date}`;
+      dateHeader.style.marginTop = '20px';
+      dateHeader.style.marginBottom = '10px';
+      dateHeader.style.color = '#f1c40f';
+      allReservations.appendChild(dateHeader);
+
+      dateReservations.forEach(reservation => {
+        const slot = timeSlots.find(s => s.id == reservation.timeSlotId);
+        const timeSlotText = slot ? `${slot.start} - ${slot.end}` : 'Unknown Time';
+        const reservationElement = document.createElement('div');
+        reservationElement.className = 'reservation-item';
+        reservationElement.innerHTML = `
+          <div class="reservation-info">
+            <h4>${reservation.name}</h4>
+            <p>${timeSlotText} | ${reservation.email}</p>
+            <small>Booked on: ${reservation.bookingDate || 'Unknown'}</small>
+          </div>
+          <button class="delete-btn" data-id="${reservation.id}">Delete</button>
+        `;
+        allReservations.appendChild(reservationElement);
+      });
+    }
+
+    document.querySelectorAll('.delete-btn').forEach(button => {
+      button.addEventListener('click', async (e) => {
+        const id = e.target.getAttribute('data-id');
+        if (confirm('Are you sure you want to delete this reservation?')) {
+          await deleteReservation(id);
+          loadAllReservations();
+          loadTimeSlots();
         }
-
-        container.appendChild(btn);
       });
-    }
+    });
+  }
 
-    // ⚡ Open reservation form
-    function openReservationForm(slot) {
-      document.getElementById("form-section").style.display = "block";
-      document.getElementById("selected-slot").value = slot;
-    }
-
-    // ⚡ Save reservation to Firestore
-    async function saveReservation(e) {
-      e.preventDefault();
-      const name = document.getElementById("name").value.trim();
-      const email = document.getElementById("email").value.trim();
-      const timeSlot = document.getElementById("selected-slot").value;
-
-      if (!name || !email) {
-        alert("Please fill in all fields.");
-        return;
+  // ✅ Event Listeners
+  function setupEventListeners() {
+    reservationForm.addEventListener('submit', handleReservationSubmit);
+    loginBtn.addEventListener('click', () => {
+      if (adminPassword.value === ADMIN_PASSWORD) {
+        isAdmin = true;
+        sessionStorage.setItem('satoriAdmin', 'true');
+        adminSection.style.display = 'block';
+        adminAccess.style.display = 'none';
+        loadAllReservations();
+      } else {
+        loginError.style.display = 'block';
+        adminPassword.value = '';
       }
+    });
 
-      try {
-        await addDoc(collection(db, "reservations"), {
-          name,
-          email,
-          timeSlot,
-          date: today,
-          createdAt: Timestamp.now()
-        });
+    adminPassword.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') loginBtn.click();
+    });
 
-        alert("Reservation successful!");
-        document.getElementById("reservation-form").reset();
-        document.getElementById("form-section").style.display = "none";
-        renderSlots();
-        loadReservations(today); // refresh list
-      } catch (err) {
-        console.error("Error saving reservation:", err);
-        alert("Error saving reservation. Try again.");
-      }
-    }
-
-    // ⚡ Load reservations from Firestore
-    async function loadReservations(date) {
-      const q = query(collection(db, "reservations"), where("date", "==", date));
-      const snap = await getDocs(q);
-      const reservations = snap.docs.map(doc => doc.data());
-
-      // Render reservation list
-      const list = document.getElementById("reservations");
-      list.innerHTML = "";
-      reservations.forEach(r => {
-        const li = document.createElement("li");
-        li.textContent = `${r.timeSlot} - ${r.name}`;
-        list.appendChild(li);
+    tabButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const tabId = button.getAttribute('data-tab');
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        tabContents.forEach(content => content.classList.remove('active'));
+        document.getElementById(`${tabId}-tab`).classList.add('active');
       });
+    });
+  }
 
-      return reservations;
+  // ✅ Reservation Submit
+  async function handleReservationSubmit(e) {
+    e.preventDefault();
+    if (!selectedTimeSlot) {
+      showAlert('Please select a time slot.', 'error');
+      return;
+    }
+    const name = document.getElementById('name').value;
+    const email = document.getElementById('email').value;
+
+    const slot = timeSlots.find(s => s.id === selectedTimeSlot);
+    const reservations = await getReservations();
+    const reservationsForSlot = reservations.filter(r => r.timeSlotId == selectedTimeSlot);
+
+    if (reservationsForSlot.length >= slot.maxCapacity) {
+      showAlert('This time slot is now full. Please select another.', 'error');
+      loadTimeSlots();
+      return;
     }
 
-    // ⚡ Init page
-    window.onload = async () => {
-      renderSlots();
-      document.getElementById("reservation-form")
-        .addEventListener("submit", saveReservation);
+    const reservation = {
+      name,
+      email,
+      timeSlotId: selectedTimeSlot,
+      date: new Date().toISOString().split('T')[0],
+      bookingDate: new Date().toLocaleString()
     };
 
-  </script>
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-    h1 { margin-bottom: 10px; }
-    #slots { margin: 20px 0; }
-    .slot-btn { 
-      padding: 10px 15px; margin: 5px; border: none; 
-      border-radius: 5px; cursor: pointer; background: #1976d2; color: white;
-    }
-    .slot-btn:disabled { background: gray; cursor: not-allowed; }
-    #form-section { margin-top: 20px; display: none; }
-    input { margin: 5px; padding: 8px; width: 200px; }
-    button[type="submit"] { background: green; }
-    ul { list-style: none; padding: 0; margin-top: 20px; }
-  </style>
-</head>
-<body>
-  <h1>Satori Strength Reservations</h1>
-  <h3>Date: <span id="today"></span></h3>
+    await saveReservation(reservation);
+    showAlert('Reservation successfully made!', 'success');
 
-  <div id="slots"></div>
+    reservationForm.reset();
+    selectedTimeSlot = null;
+    selectedTimeInput.value = '';
+    loadTimeSlots();
+    if (isAdmin) loadAllReservations();
+  }
 
-  <div id="form-section">
-    <h3>Reserve Slot</h3>
-    <form id="reservation-form">
-      <input type="hidden" id="selected-slot">
-      <input type="text" id="name" placeholder="Your Name"><br>
-      <input type="email" id="email" placeholder="Your Email"><br>
-      <button type="submit">Confirm Reservation</button>
-    </form>
-  </div>
+  function showAlert(message, type) {
+    const alertElement = type === 'success' ? successAlert : errorAlert;
+    alertElement.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : 'exclamation'}-circle"></i> ${message}`;
+    alertElement.style.display = 'block';
+    setTimeout(() => { alertElement.style.display = 'none'; }, 5000);
+  }
 
-  <h3>Today’s Reservations</h3>
-  <ul id="reservations"></ul>
+  // ✅ Firestore functions
+  async function getReservations() {
+    const today = new Date().toISOString().split('T')[0];
+    const q = query(collection(db, "reservations"), where("date", "==", today));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }
 
-  <script>
-    // Show today’s date
-    document.getElementById("today").textContent = new Date().toLocaleDateString();
-  </script>
-</body>
-</html>
+  async function getAllReservations() {
+    const snap = await getDocs(collection(db, "reservations"));
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }
+
+  async function saveReservation(reservation) {
+    await addDoc(collection(db, "reservations"), { ...reservation, createdAt: Timestamp.now() });
+  }
+
+  async function deleteReservation(id) {
+    await deleteDoc(doc(db, "reservations", id));
+  }
+
+  // ✅ Init
+  document.addEventListener('DOMContentLoaded', initializeAppCustom);
+</script>
